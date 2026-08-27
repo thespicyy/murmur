@@ -6,7 +6,7 @@ Vous maintenez `Ctrl+Alt+D`, vous parlez, vous relâchez. Le texte arrive dans l
 fenêtre active en environ 380 ms. Aucun octet ne quitte la machine — ni
 pendant, ni après.
 
-![Murmur — statistiques](captures/insights.png)
+![Murmur — statistiques](docs/captures/insights.png)
 
 ---
 
@@ -21,7 +21,8 @@ Le prix à payer est ailleurs — dans le code. Faire tourner Whisper sur une
 carte AMD sous Windows, insérer du texte dans une application quelconque,
 dessiner une fenêtre sans barre de titre système : chacun de ces points a
 demandé des mesures et plusieurs tentatives. Le journal de bord
-([`SUIVI.md`](SUIVI.md)) les raconte, échecs compris.
+([`docs/JOURNAL.md`](docs/JOURNAL.md)) les raconte, échecs
+compris.
 
 ## Installation
 
@@ -96,13 +97,24 @@ python -m venv .venv
 
 Le moteur (`engine/`) n'est pas versionné : ce sont 600 Mo de binaires
 compilés depuis [whisper.cpp](https://github.com/ggerganov/whisper.cpp) avec le
-backend Vulkan. La procédure est décrite dans [`SUIVI.md`](SUIVI.md).
+backend Vulkan. La procédure est décrite dans
+[`docs/JOURNAL.md`](docs/JOURNAL.md).
 
 ```
-.venv\Scripts\python construire.py     # produit dist/Murmur/
-.venv\Scripts\python empaqueter.py     # produit l'archive à distribuer
-.venv\Scripts\python -m pytest         # 778 tests
+.venv\Scripts\python -m murmur --console      # lancer depuis les sources
+.venv\Scripts\python -m pytest                # 782 tests
+.venv\Scripts\python outils\construire.py     # produit dist/Murmur/
+.venv\Scripts\python outils\empaqueter.py     # produit l'archive
 ```
+
+### Ce que contient le dépôt
+
+| | |
+|---|---|
+| `murmur/` | l'application |
+| `tests/` | 782 tests |
+| `outils/` | construction, archive, captures d'écran, essai sur machine vierge |
+| `docs/` | spécification, plan, journal de bord, journal des erreurs |
 
 ## État
 

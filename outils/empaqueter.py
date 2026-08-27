@@ -1,7 +1,7 @@
 r"""Fabrique l'archive a distribuer.
 
-    .venv\Scripts\python.exe construire.py
-    .venv\Scripts\python.exe empaqueter.py
+    .venv\Scripts\python.exe outils\construire.py
+    .venv\Scripts\python.exe outils\empaqueter.py
 
 Produit `Murmur-<version>-windows-x64.zip` : l'application, le moteur, ses
 bibliotheques — et PAS le modele de reconnaissance vocale.
@@ -29,7 +29,8 @@ import sys
 import zipfile
 from pathlib import Path
 
-RACINE = Path(__file__).resolve().parent
+#: La racine du projet, un cran au-dessus de `outils/`.
+RACINE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE))
 
 from murmur import modeles  # noqa: E402
@@ -87,14 +88,14 @@ def verifier_fraicheur() -> None:
         sys.exit(f"""l'executable est plus ancien que les sources.
     modifie(s) depuis : {noms}{reste}
     L'archive livrerait une version depassee. Reconstruis d'abord :
-        .venv\Scripts\python.exe construire.py""")
+        .venv\Scripts\python.exe outils\construire.py""")
 
 
 def fabriquer() -> Path:
     verifier_fraicheur()
     if not (DIST / f"{NOM}.exe").exists():
         sys.exit(f"application introuvable dans {DIST}.\n"
-                 f"    Lance d'abord : .venv\\Scripts\\python.exe construire.py")
+                 f"    Lance d'abord : .venv\\Scripts\\python.exe outils\construire.py")
 
     moteur = DIST / "engine"
     if not (moteur / "whisper-server.exe").exists():

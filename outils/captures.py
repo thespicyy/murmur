@@ -1,7 +1,7 @@
 r"""Capture le tableau de bord, page par page, sur les donnees de demonstration.
 
-    .venv\Scripts\python.exe outils_demo.py
-    .venv\Scripts\python.exe outils_captures.py
+    .venv\Scripts\python.exe outils\demo.py
+    .venv\Scripts\python.exe outils\captures.py
 
 PAS DE CAPTURE D'ECRAN, ET C'EST DELIBERE
 
@@ -13,7 +13,7 @@ l'utilisateur, ce qu'il lisait, ce qu'il regardait. Essaye ici, elle a rendu
 une video en cours de lecture. Les images ont ete effacees.
 
 On rend donc la page hors ecran, dans un navigateur sans fenetre, a partir de
-l'apercu autonome que `outils_apercu` sait fabriquer. Rien de ce qui est
+l'apercu autonome que `apercu.py` sait fabriquer. Rien de ce qui est
 capture ne vient de l'ecran de qui que ce soit.
 
 Ce qu'on y perd : les coins arrondis et l'ombre que Windows compose autour de
@@ -31,8 +31,10 @@ import tempfile
 import time
 from pathlib import Path
 
-RACINE = Path(__file__).resolve().parent
+#: La racine du projet, un cran au-dessus de `outils/`.
+RACINE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 #: Le navigateur repart parfois les mains vides quand l'instance
 #: precedente n'a pas fini de se retirer. On reessaie plutot que de
@@ -40,8 +42,8 @@ sys.path.insert(0, str(RACINE))
 ESSAIS = 4
 REPOS_S = 2.0
 
-DOSSIER_DONNEES = RACINE / "captures" / "donnees"
-SORTIE = RACINE / "captures"
+DOSSIER_DONNEES = RACINE / "docs" / "captures" / "donnees"
+SORTIE = RACINE / "docs" / "captures"
 
 #: Taille de rendu. Celle de la fenetre au repos, en pixels reels d'un ecran a
 #: cent pour cent : les captures ne doivent pas dependre de l'echelle du poste
@@ -117,12 +119,12 @@ def rendre(exe: Path, page: Path, image: Path) -> bool:
 
 def main() -> int:
     if not (DOSSIER_DONNEES / "historique.sqlite3").exists():
-        sys.exit("donnees de demonstration absentes — lance outils_demo.py")
+        sys.exit("donnees de demonstration absentes — lance outils/demo.py")
 
     # Avant tout import de `murmur` : c'est cette variable qui decide quelle
     # base est lue, et les donnees reelles ne doivent jamais l'etre ici.
     os.environ["MURMUR_DONNEES"] = str(DOSSIER_DONNEES)
-    import outils_apercu
+    import apercu
 
     exe = navigateur()
     print(f"  rendu par : {exe.name}")
@@ -130,7 +132,7 @@ def main() -> int:
     SORTIE.mkdir(parents=True, exist_ok=True)
 
     for page, langue, theme, nom in PLANCHE:
-        source = outils_apercu.batir(langue, theme, ouvrir_sur=page,
+        source = apercu.batir(langue, theme, ouvrir_sur=page,
                                      sortie=pages)
         image = SORTIE / f"{nom}.png"
         image.unlink(missing_ok=True)

@@ -1,6 +1,6 @@
 r"""Peuple un jeu de donnees de demonstration, pour les captures d'ecran.
 
-    .venv\Scripts\python.exe outils_demo.py
+    .venv\Scripts\python.exe outils\demo.py
 
 Ecrit dans un dossier a part — JAMAIS dans les donnees reelles de
 l'utilisateur, qui contiennent ses vraies dictees. Le dossier est designe par
@@ -26,12 +26,13 @@ import tempfile
 from datetime import date, datetime, time as heure_du_jour, timedelta
 from pathlib import Path
 
-RACINE = Path(__file__).resolve().parent
+#: La racine du projet, un cran au-dessus de `outils/`.
+RACINE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE))
 
 #: Dossier des donnees de demonstration. A cote du projet et non dans
 #: %APPDATA% : il se supprime d'un seul geste et ne se confond avec rien.
-DOSSIER = RACINE / "captures" / "donnees"
+DOSSIER = RACINE / "docs" / "captures" / "donnees"
 
 GRAINE = 20260823
 

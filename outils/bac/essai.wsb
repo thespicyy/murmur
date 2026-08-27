@@ -8,12 +8,12 @@
       <ReadOnly>true</ReadOnly>
     </MappedFolder>
     <MappedFolder>
-      <HostFolder>CHEMIN\VERS\MURMUR\bac\resultat</HostFolder>
+      <HostFolder>CHEMIN\VERS\MURMUR\outils\bac\resultat</HostFolder>
       <SandboxFolder>C:\resultat</SandboxFolder>
       <ReadOnly>false</ReadOnly>
     </MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>powershell -ExecutionPolicy Bypass -NoProfile -File C:\murmur\bac\essai.ps1</Command>
+    <Command>powershell -ExecutionPolicy Bypass -NoProfile -File C:\murmur\outils\bac\essai.ps1</Command>
   </LogonCommand>
 </Configuration>

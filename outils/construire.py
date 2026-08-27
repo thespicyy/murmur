@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Construit Murmur.exe.
 
-    .venv\\Scripts\\python.exe construire.py
+    .venv\\Scripts\\python.exe outils\construire.py
 
 Produit `dist/Murmur/`, un dossier contenant l'executable et ses dependances.
 
@@ -42,10 +42,15 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from murmur import crt
 
+#: La racine du projet, un cran au-dessus de `outils/`. Posee sur le chemin de
+#: recherche avant tout import du paquet : Python ajoute de lui-meme le dossier
+#: du script — `outils/` — et non celui du projet.
+RACINE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(RACINE))
 
-RACINE = Path(__file__).resolve().parent
+from murmur import crt  # noqa: E402
+
 NOM = "Murmur"
 ICONE = RACINE / "build" / "murmur.ico"
 
@@ -110,7 +115,7 @@ def verifier_interpreteur() -> None:
     manquant     : {", ".join(manquants)}
 
     Construis avec celui du projet :
-        .venv{os.sep}Scripts{os.sep}python.exe construire.py""")
+        .venv{os.sep}Scripts{os.sep}python.exe outils\construire.py""")
 
 
 def verifier_arret() -> None:
@@ -218,7 +223,7 @@ def construire() -> Path:
         # `murmur/__main__.py` : PyInstaller ecarte de son analyse les modules
         # ainsi nommes a l'interieur d'un paquet, et l'executable tombait au
         # lancement sur « No module named 'murmur.__main__' ».
-        str(RACINE / "lanceur.py"),
+        str(RACINE / "outils" / "lanceur.py"),
     ]
 
     print(f"  build   : {NOM}/ (sans console, moteur externe)")
@@ -325,7 +330,7 @@ def main(copier: bool = False, raccourci: bool = True) -> int:
     if not copier:
         print()
         print("  Pour un dossier autonome, deplacable sur une autre machine :")
-        print("      .venv\\Scripts\\python.exe construire.py --copier")
+        print("      .venv\\Scripts\\python.exe outils\construire.py --copier")
     return 0
 
 

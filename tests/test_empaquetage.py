@@ -77,7 +77,7 @@ def test_les_donnees_utilisateur_ne_dependent_pas_du_mode(monkeypatch,
 
 #: C'est le script de construction qui fait foi, non le fichier `.spec` :
 #: celui-ci est REGENERE a chaque construction et perdrait toute retouche.
-CONSTRUCTION = RACINE_PROJET / "construire.py"
+CONSTRUCTION = RACINE_PROJET / "outils" / "construire.py"
 
 
 @pytest.fixture(scope="module")
@@ -224,7 +224,7 @@ def test_la_sortie_muette_se_comporte_comme_un_flux():
 # --------------------------------------------------------------------------
 
 def test_le_script_de_construction_est_syntaxiquement_valide():
-    script = RACINE_PROJET / "construire.py"
+    script = RACINE_PROJET / "outils" / "construire.py"
     assert script.exists()
     compile(script.read_text(encoding="utf-8"), str(script), "exec")
 
@@ -232,7 +232,7 @@ def test_le_script_de_construction_est_syntaxiquement_valide():
 def test_licone_couvre_les_tailles_attendues_par_windows():
     import importlib.util
 
-    chemin = RACINE_PROJET / "construire.py"
+    chemin = RACINE_PROJET / "outils" / "construire.py"
     spec = importlib.util.spec_from_file_location("construire", chemin)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -247,7 +247,7 @@ def test_licone_se_genere_reellement(tmp_path, monkeypatch):
     import importlib.util
     from PIL import Image
 
-    chemin = RACINE_PROJET / "construire.py"
+    chemin = RACINE_PROJET / "outils" / "construire.py"
     spec = importlib.util.spec_from_file_location("construire_icone", chemin)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

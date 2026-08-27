@@ -5,26 +5,20 @@ __pycache__/
 .pytest_cache/
 
 # Moteur et modeles : 600 Mo de binaires recompilables, jamais versionnes.
-# Voir SUIVI.md pour la procedure de reconstruction depuis whisper.cpp.
+# Voir docs/JOURNAL.md pour la procedure de reconstruction depuis whisper.cpp.
 engine/
-
-# Spikes : code jetable de J0, garde localement pour reference
-spikes/**/sample_fr.wav
-spikes/**/*.wav
-spikes/**/resultats*.json
 
 # Construction de l'executable
 dist/
 build/
-maquette/apercu/
-maquette/_rendu.html
+outils/apercu/
 
 # Bac a sable : scripts d'essai sur machine vierge, et leurs releves. Les
 # releves contiennent des chemins et des journaux de la machine d'essai.
-bac/resultat/
+outils/bac/resultat/
 
-# Donnees de demonstration pour les captures : regenerees par outils_demo.py.
-captures/donnees/
+# Donnees de demonstration pour les captures : regenerees par outils/demo.py.
+docs/captures/donnees/
 
 # Spikes : mesures de faisabilite de J0. Contiennent un enregistrement de la
 # voix de l'auteur et les transcriptions qui en decoulent — jamais publies.

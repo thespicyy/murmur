@@ -9,7 +9,7 @@ Tout est inline — feuille de style, scripts, donnees — parce que le volet de
 previsualisation sert la page en `data:`, ou les chemins relatifs ne menent
 nulle part.
 
-    .venv\Scripts\python.exe outils_apercu.py
+    .venv\Scripts\python.exe outils\apercu.py
 """
 
 from __future__ import annotations
@@ -18,7 +18,8 @@ import json
 import sys
 from pathlib import Path
 
-RACINE = Path(__file__).resolve().parent
+#: La racine du projet, un cran au-dessus de `outils/`.
+RACINE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE))
 
 from murmur import config as configuration, langue as module_langue  # noqa: E402
@@ -26,7 +27,7 @@ from murmur import lexicon, store, systeme  # noqa: E402
 from murmur.tableau import donnees  # noqa: E402
 
 WEB = RACINE / "murmur" / "tableau" / "web"
-SORTIE = RACINE / "maquette" / "apercu"
+SORTIE = RACINE / "outils" / "apercu"
 
 PONT = """<script>
 /* Pont simule : les memes methodes que `tableau.api`, servies figees. */

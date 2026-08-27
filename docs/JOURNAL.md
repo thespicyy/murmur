@@ -797,6 +797,41 @@ validée bien avant son jalon.
 
 ## Journal
 
+**27/08/2026 (34) — Un dépôt public se lit d'abord par sa racine**
+Dix-sept fichiers à la racine, dont 2 600 lignes de documents de travail, quatre
+outils de captures d'écran, deux lanceurs `.bat` et une maquette morte. Ça se
+lit comme un espace de travail, pas comme un projet publié.
+
+Vérifié avant de tailler : **aucun module de `murmur/` n'est orphelin.** Chacun
+des trente-quatre est importé par au moins un autre. Le problème n'était pas le
+code, c'était sa disposition — et il valait pour le dossier local autant que
+pour le dépôt.
+
+```
+avant                          après
+  17 fichiers à la racine        5 fichiers à la racine
+  PLAN, SPEC, TACHES, SUIVI      docs/    spécification, plan, journal
+  construire, empaqueter,        outils/  construction, archive, captures,
+  lanceur, 4 × outils_*,                  essai sur machine vierge
+  2 × lancer.bat                 murmur/  l'application
+  maquette/, bac/, logs/         tests/
+```
+
+Supprimés : les deux `.bat` (l'application se lance par `python -m murmur`, et
+la version livrée est un exécutable) et la maquette — un prototype de
+comparaison Tkinter contre moteur web, dont la décision est prise depuis
+longtemps.
+
+Deux pièges du déplacement, tous deux attrapés par les tests ou par un essai
+réel. Les tests d'empaquetage lisaient `construire.py` à la racine. Et
+`construire.py` importait `murmur` **avant** de poser la racine sur le chemin
+de recherche : tant qu'il vivait à la racine, Python l'y ajoutait de lui-même ;
+depuis `outils/`, il n'ajoute plus que `outils/`.
+
+Vérifié de bout en bout après déplacement : construction, archive de 56 Mo,
+planche de captures, et **781 tests**.
+
+
 **27/08/2026 (33) — Le reste des relances : la suite de tests tuait le moteur**
 Après le correctif de la course entre fils, les relances continuaient. Le
 compteur passait de 237 à 239 **à chaque exécution de la suite de tests**, et

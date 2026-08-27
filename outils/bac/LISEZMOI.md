@@ -15,7 +15,8 @@ transcrit.
    *Bac à sable Windows*). Édition Pro ou Entreprise uniquement.
 2. Dans `essai.wsb`, remplacez `CHEMIN\VERS\MURMUR` par le chemin réel du
    projet. Le format `.wsb` n'accepte que des chemins absolus, sans variable.
-3. Construisez l'archive : `construire.py` puis `empaqueter.py`.
+3. Construisez l'archive : `outils/construire.py` puis
+   `outils/empaqueter.py`.
 4. Double-cliquez sur `essai.wsb`.
 
 Le rapport est écrit dans `resultat/rapport.txt`, sur la machine hôte, au fur

@@ -1,6 +1,6 @@
 r"""Que reclame le moteur, et qu'est-ce qui manquerait ailleurs qu'ici ?
 
-    .venv\Scripts\python.exe outils_imports.py
+    .venv\Scripts\python.exe outils\imports.py
 
 Croise deux choses :
 
@@ -20,7 +20,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-RACINE = Path(__file__).resolve().parent
+#: La racine du projet, un cran au-dessus de `outils/`.
+RACINE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE))
 
 from murmur import crt, pe  # noqa: E402
