@@ -797,6 +797,39 @@ validée bien avant son jalon.
 
 ## Journal
 
+**27/08/2026 (32) — Publication : dépôt public, licence MIT, version 0.1.0**
+Le dépôt est ouvert sous licence MIT, l'archive de 56 Mo attachée à la
+release. Deux choses ont demandé du soin.
+
+**Le nettoyage.** Le journal, les tests et les données de démonstration
+étaient truffés du vocabulaire de l'auteur — noms de services, corrections
+tirées de dictées réelles, et un texte long de deux cent trente caractères
+qui parlait de son travail. Rien de secret, mais rien qui décrive le
+logiciel non plus.
+
+La règle suivie : **ne jamais remplacer un mot dans une phrase qui cite une
+mesure.** Une ressemblance de 0,600 a été relevée sur une paire précise ;
+changer la paire rendrait le chiffre faux. Les phrases ont donc été
+généralisées en gardant les chiffres, et là où un texte d'exemple devait
+être remplacé, le remplaçant a été **choisi par mesure** : il fallait qu'il
+reproduise le défaut. Le nouveau texte long obtient 0,060 contre 0,968 —
+l'original donnait 0,052 contre 0,978.
+
+Le vocabulaire des tests a été remplacé par du vocabulaire technique de même
+difficulté, et la suite a servi de garde-fou : quatre tests ont échoué sur
+des seuils de ressemblance, dont un remplaçant à 0,706 sous le seuil de 0,82.
+Corrigé, mesuré, revert.
+
+**L'enregistrement de référence.** Un test rejouait un fichier `.wav` — la
+voix de l'auteur lisant son jargon — et portait son vocabulaire en dur. Le
+`.wav` n'est pas publié ; les variantes attendues sont donc parties dans le
+`reference.json` qui l'accompagne, et le test se saute de lui-même quand
+l'enregistrement est absent. Ce qui décrit une personne ne doit pas vivre
+dans ce qui décrit un logiciel.
+
+Publié : dépôt `thespicyy/murmur`, release `v0.1.0`. **778 tests.**
+
+
 **27/08/2026 (31) — L'archive : 56 Mo, et le modèle pris au premier lancement**
 Le modèle pèse 574 Mo, tout le reste 82. Le livrer avec ferait une archive que
 personne ne télécharge pour essayer — et la moitié de ceux qui la
