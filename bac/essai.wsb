@@ -1,0 +1,19 @@
+<Configuration>
+  <VGpu>Disable</VGpu>
+  <Networking>Enable</Networking>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>CHEMIN\VERS\MURMUR</HostFolder>
+      <SandboxFolder>C:\murmur</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+    <MappedFolder>
+      <HostFolder>CHEMIN\VERS\MURMUR\bac\resultat</HostFolder>
+      <SandboxFolder>C:\resultat</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell -ExecutionPolicy Bypass -NoProfile -File C:\murmur\bac\essai.ps1</Command>
+  </LogonCommand>
+</Configuration>

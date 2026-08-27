@@ -1,0 +1,17 @@
+# Murmur — dependances
+
+# Client HTTP vers whisper-server (T1.2)
+requests>=2.32
+
+# Capture micro : PortAudio, 16 kHz mono natif (T1.3)
+sounddevice>=0.5
+
+# Calcul du RMS et manipulation des echantillons (T1.3, T2.1)
+numpy>=2.0
+
+# Icone de zone de notification (T3.2)
+pystray>=0.19
+Pillow>=11.0
+
+# Tests
+pytest>=8.0

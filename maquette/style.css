@@ -1,0 +1,339 @@
+/* Maquette de la page Insights, en HTML.
+ *
+ * Chaque regle marquee « Tk : impossible » designe un effet que la version
+ * Tkinter ne peut pas produire, et qui a fait l'objet d'un aller-retour dans
+ * les echanges precedents. C'est la raison d'etre de cette maquette.
+ */
+
+:root {
+  /* Palette relevee sur la reference, fournie par l'utilisateur. */
+  --fond: #f5f4f0;
+  --panneau: #fcfcfb;
+  --texte: #312d37;
+
+  --carte: #f5f4f0;
+  --carte-survol: #efeee9;
+  --pilule: #e8e6e0;
+  --texte-doux: #6b6673;
+  --texte-faible: #9b96a3;
+  --accent: #312d37;
+  --accent-texte: #fcfcfb;
+  --bordure: #e6e4de;
+  --hausse: #2f7d4f;
+
+  --rayon-panneau: 16px;
+  --rayon-carte: 14px;
+  --bande: 12px;
+  --barre: 216px;
+  --barre-repliee: 64px;
+  --titre: 52px;
+}
+
+:root[data-theme="sombre"] {
+  --fond: #15131a;
+  --panneau: #1c1a22;
+  --texte: #f5f4f0;
+
+  --carte: #24212c;
+  --carte-survol: #2c2936;
+  --pilule: #2c2936;
+  --texte-doux: #a9a3b3;
+  --texte-faible: #726d7d;
+  --accent: #f5f4f0;
+  --accent-texte: #312d37;
+  --bordure: #332f3c;
+  --hausse: #6bbf8a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui,
+    sans-serif;
+  /* Tk : impossible. Le crenage et les chiffres a chasse fixe demandent un
+   * moteur de rendu qui lise les tables OpenType — GDI n'expose rien de tel
+   * a Tkinter. */
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* -- barre de titre ------------------------------------------------------ */
+
+.titre {
+  height: var(--titre);
+  display: flex;
+  align-items: center;
+  /* Tk : impossible. Le deplacement de la fenetre par une zone declaree,
+   * sans reimplementer le suivi de la souris. */
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titre button { -webkit-app-region: no-drag; }
+
+.volet, .commande {
+  border: 0;
+  background: none;
+  color: var(--texte-faible);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.volet { width: 52px; height: 100%; }
+.commande { width: 46px; height: 100%; }
+
+.volet:hover, .commande:hover {
+  background: var(--carte-survol);
+  color: var(--texte);
+}
+
+.commande.fermer:hover { background: #e3453a; color: #fff; }
+.commandes { margin-left: auto; display: flex; height: 100%; }
+
+/* -- ossature ------------------------------------------------------------ */
+
+.corps {
+  display: flex;
+  height: calc(100% - var(--titre) - 30px);
+}
+
+.laterale {
+  width: var(--barre);
+  flex: 0 0 var(--barre);
+  padding: 0 var(--bande);
+  /* Tk : impossible. La largeur s'anime ici en une ligne ; en Tkinter il a
+   * fallu ecrire une boucle d'images avec son adoucissement en cosinus. */
+  transition: width 180ms cubic-bezier(.4, 0, .2, 1),
+              flex-basis 180ms cubic-bezier(.4, 0, .2, 1);
+  overflow: hidden;
+}
+
+body.repliee .laterale {
+  width: var(--barre-repliee);
+  flex-basis: var(--barre-repliee);
+}
+
+.marque {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 18px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.marque span {
+  transition: opacity 120ms ease;
+}
+
+body.repliee .marque span,
+body.repliee .onglet span,
+body.repliee .lien span { opacity: 0; }
+
+.onglet, .lien {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 8px;
+  border-radius: 10px;
+  color: var(--texte);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.onglet:hover, .lien:hover { background: var(--carte-survol); }
+.onglet.actif { background: var(--pilule); }
+.lien { color: var(--texte-doux); margin-top: auto; }
+
+.laterale nav { display: flex; flex-direction: column; height: calc(100% - 60px); }
+
+/* -- panneau ------------------------------------------------------------- */
+
+.panneau {
+  flex: 1;
+  min-width: 0;
+  margin-right: var(--bande);
+  background: var(--panneau);
+  border-radius: var(--rayon-panneau);
+  padding: 30px;
+  overflow-y: auto;
+  /* Tk : impossible. Une ombre portee demande de peindre hors du widget. */
+  box-shadow: 0 1px 2px rgba(43, 31, 20, .04);
+}
+
+.entete { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; }
+.entete h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+.entete p { color: var(--texte-doux); font-size: 13px; }
+
+/* -- cartes -------------------------------------------------------------- */
+
+.grille { display: grid; gap: 14px; grid-template-columns: repeat(3, 1fr); }
+.grille.large { grid-template-columns: 5fr 4fr; margin-top: 14px; }
+
+.carte {
+  background: var(--carte);
+  border-radius: var(--rayon-carte);
+  padding: 20px;
+  /* Tk : impossible. Le degrade demande de peindre SOUS le contenu ; un cadre
+   * Tk est opaque et recouvre tout ce qui est dessous. C'est exactement le
+   * point sur lequel j'avais repondu « infaisable » — ici, deux lignes. */
+  background-image: linear-gradient(
+    180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 42%);
+  box-shadow: 0 4px 10px rgba(43, 31, 20, .05),
+              0 1px 0 rgba(255, 255, 255, .6) inset;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+:root[data-theme="sombre"] .carte {
+  background-image: linear-gradient(
+    180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0) 42%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .25),
+              0 1px 0 rgba(255, 255, 255, .07) inset;
+}
+
+.carte:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(43, 31, 20, .08); }
+:root[data-theme="sombre"] .carte:hover { box-shadow: 0 8px 18px rgba(0, 0, 0, .35); }
+
+.chiffre {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  /* Tk : impossible. Chiffres a chasse fixe : sans eux, un compteur qui monte
+   * fait sautiller tout ce qui le suit. */
+  font-variant-numeric: tabular-nums;
+}
+
+.legende {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--texte-faible);
+  margin-top: 4px;
+}
+
+.filet { height: 1px; background: var(--bordure); margin: 16px 0 14px; }
+.detail { font-size: 12px; color: var(--texte-doux); margin-bottom: 5px; }
+.detail b { color: var(--texte); font-weight: 600; margin-right: 6px; }
+
+.tendance {
+  float: right;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--texte-doux);
+}
+.tendance.hausse { color: var(--hausse); }
+
+.titre-carte {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.titre-carte h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.titre-carte span {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--texte-faible);
+}
+
+/* -- jauge --------------------------------------------------------------- */
+
+.jauge { position: relative; margin-top: 14px; display: grid; place-items: center; }
+.jauge svg { width: 100%; max-width: 190px; }
+/* Tk : impossible sans dessiner soi-meme deux disques aux extremites. */
+.jauge .arc { stroke-linecap: round; fill: none; }
+.jauge .rail { stroke: var(--bordure); }
+.jauge .actif {
+  stroke: var(--accent);
+  transition: stroke-dashoffset 600ms cubic-bezier(.4, 0, .2, 1);
+}
+.jauge figcaption {
+  position: absolute;
+  bottom: 2px;
+  text-align: center;
+}
+.jauge .rapport { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+.jauge .sous { font-size: 11px; color: var(--texte-faible); }
+
+/* -- usage par application ---------------------------------------------- */
+
+.usage { display: flex; flex-direction: column; gap: 12px; }
+.usage li { display: flex; align-items: center; gap: 12px; list-style: none; }
+.usage .picto { width: 20px; color: var(--texte-doux); flex: 0 0 20px; }
+
+.usage .piste { flex: 1; min-width: 0; }
+.usage .barre {
+  height: 26px;
+  min-width: 46px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-texte);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  /* Tk : impossible. La barre pousse a l'ouverture, en une ligne. */
+  animation: pousser 700ms cubic-bezier(.4, 0, .2, 1) both;
+}
+
+@keyframes pousser { from { width: 46px; } }
+
+.usage .nom { font-size: 12px; text-align: right; flex: 0 0 auto; }
+.usage .nom em { color: var(--texte-faible); font-style: normal; margin-left: 6px; }
+
+/* -- calendrier ---------------------------------------------------------- */
+
+.calendrier { display: flex; gap: 8px; }
+.calendrier .jours {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 4px;
+  font-size: 9px;
+  color: var(--texte-faible);
+  align-items: center;
+}
+.grille-jours {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+.case {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--n0);
+  transition: transform 100ms ease;
+}
+.case:hover { transform: scale(1.25); }
+.mois {
+  display: flex;
+  font-size: 9px;
+  color: var(--texte-faible);
+  margin: 0 0 6px 30px;
+  gap: 0;
+}
+
+/* -- pied ---------------------------------------------------------------- */
+
+.pied {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  font-size: 11px;
+  color: var(--texte-faible);
+}
+.pied span:last-child { margin-left: auto; }
