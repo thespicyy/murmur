@@ -256,7 +256,10 @@ def test_le_moteur_meurt_avec_un_parent_tue_brutalement(conf, tmp_path):
     finally:
         if parent.poll() is None:
             parent.kill()
-        stt.tuer_orphelins()
+        # Seulement ce que ce test a cree. Sans le filtre, le menage
+        # emportait le moteur d'une application en cours d'utilisation :
+        # chaque execution de la suite en tuait un.
+        stt.tuer_orphelins([pid_moteur])
 
 
 @pytest.mark.lent
@@ -290,7 +293,7 @@ def test_un_orphelin_est_recupere_au_demarrage(conf):
     finally:
         if poignee_job:
             stt.kernel32.CloseHandle(poignee_job)
-        stt.tuer_orphelins()
+        stt.tuer_orphelins([pid_orphelin])
 
 
 @pytest.mark.lent
@@ -530,3 +533,76 @@ class _ProcessusVivant:
 
     def poll(self):
         return None
+
+
+# --------------------------------------------------------------------------
+# Ne tuer que ce qui tient le port
+# --------------------------------------------------------------------------
+
+@pytest.mark.materiel
+def test_seul_le_processus_qui_tient_le_port_est_tue(conf, monkeypatch):
+    """Le defaut qui expliquait le reste des relances du moteur.
+
+    Liberer le port revenait a tuer TOUS les moteurs issus de notre dossier.
+    Sur une machine de developpement, cela emportait le moteur de
+    l'application en cours d'utilisation, qui ecoutait paisiblement sur un
+    autre port — chaque execution de la suite de tests en tuait un.
+
+    Invisible autrement que par la mesure : le dossier livre est une jonction
+    NTFS vers celui du projet, et Windows resout la jonction quand on lui
+    demande le chemin d'un processus.
+    """
+    import socket
+
+    monkeypatch.setattr(stt, "orphelins_du_moteur", lambda: [111, 222])
+    monkeypatch.setattr(stt, "proprietaire_du_port", lambda _p: 222)
+    vises = []
+    monkeypatch.setattr(stt, "tuer_orphelins",
+                        lambda pids=None: vises.append(pids) or [])
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as intrus:
+        intrus.bind((conf["moteur.hote"], 0))
+        intrus.listen(5)
+        conf.definir("moteur.port", intrus.getsockname()[1])
+        with pytest.raises(stt.ErreurMoteur):
+            stt.Moteur(conf).demarrer()
+
+    # Deux passages : le demarrage reessaie une fois sans la carte
+    # graphique. Chacun doit viser le seul detenteur du port.
+    assert vises and all(v == [222] for v in vises), vises
+
+
+@pytest.mark.materiel
+def test_un_port_tenu_par_un_tiers_n_emporte_aucun_moteur(conf, monkeypatch):
+    """Le port est pris par un programme qui n'est pas de nous : nos moteurs
+    n'y sont pour rien et ne doivent pas mourir."""
+    import socket
+
+    monkeypatch.setattr(stt, "orphelins_du_moteur", lambda: [111])
+    monkeypatch.setattr(stt, "proprietaire_du_port", lambda _p: 999)
+    vises = []
+    monkeypatch.setattr(stt, "tuer_orphelins",
+                        lambda pids=None: vises.append(pids) or [])
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as intrus:
+        intrus.bind((conf["moteur.hote"], 0))
+        intrus.listen(5)
+        conf.definir("moteur.port", intrus.getsockname()[1])
+        with pytest.raises(stt.ErreurMoteur):
+            stt.Moteur(conf).demarrer()
+
+    assert vises == [], "un moteur etranger au conflit a ete tue"
+
+
+@pytest.mark.materiel
+def test_le_proprietaire_du_port_est_bien_trouve():
+    """La lecture de la table TCP repond sur un port qu'on tient soi-meme."""
+    import os
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as prise:
+        prise.bind(("127.0.0.1", 0))
+        prise.listen(5)
+        port = prise.getsockname()[1]
+
+        assert stt.proprietaire_du_port(port) == os.getpid()

@@ -233,6 +233,63 @@ def orphelins_du_moteur() -> list[int]:
     return trouves
 
 
+iphlpapi = ctypes.WinDLL("iphlpapi", use_last_error=True)
+
+AF_INET = 2
+TCP_TABLE_OWNER_PID_LISTENER = 3
+ERROR_INSUFFICIENT_BUFFER = 122
+
+
+class MIB_TCPROW_OWNER_PID(ctypes.Structure):
+    _fields_ = [("dwState", wintypes.DWORD),
+                ("dwLocalAddr", wintypes.DWORD),
+                ("dwLocalPort", wintypes.DWORD),
+                ("dwRemoteAddr", wintypes.DWORD),
+                ("dwRemotePort", wintypes.DWORD),
+                ("dwOwningPid", wintypes.DWORD)]
+
+
+def proprietaire_du_port(port: int) -> int | None:
+    """PID du processus qui ecoute sur ce port, ou None.
+
+    Le critere qui manquait. Jusqu'ici, liberer le port revenait a tuer
+    TOUS les moteurs issus de notre dossier — donc, sur une machine de
+    developpement, le moteur de l'application en cours d'utilisation,
+    qui ecoutait paisiblement sur un autre port.
+
+    Le defaut ne pouvait pas se voir autrement que par la mesure : le
+    dossier livre est une jonction NTFS vers le dossier du projet, et
+    Windows resout la jonction quand on lui demande le chemin d'un
+    processus. Deux chemins differents au lancement, un seul a la
+    lecture — l'application et la suite de tests se reconnaissaient
+    mutuellement comme orphelines.
+    """
+    taille = wintypes.DWORD(0)
+    resultat = iphlpapi.GetExtendedTcpTable(
+        None, ctypes.byref(taille), False, AF_INET,
+        TCP_TABLE_OWNER_PID_LISTENER, 0)
+    if resultat != ERROR_INSUFFICIENT_BUFFER:
+        return None
+
+    tampon = ctypes.create_string_buffer(taille.value)
+    if iphlpapi.GetExtendedTcpTable(
+            tampon, ctypes.byref(taille), False, AF_INET,
+            TCP_TABLE_OWNER_PID_LISTENER, 0) != 0:
+        return None
+
+    nombre = ctypes.cast(
+        tampon, ctypes.POINTER(wintypes.DWORD)).contents.value
+    lignes = ctypes.cast(
+        ctypes.byref(tampon, ctypes.sizeof(wintypes.DWORD)),
+        ctypes.POINTER(MIB_TCPROW_OWNER_PID * nombre)).contents
+    for ligne in lignes:
+        # Le port est en ordre reseau, sur les deux octets de poids fort.
+        if ((ligne.dwLocalPort & 0xFF) << 8 | (ligne.dwLocalPort >> 8)
+                & 0xFF) == port:
+            return ligne.dwOwningPid
+    return None
+
+
 def tuer_orphelins(pids: list[int] | None = None) -> list[int]:
     """Termine les moteurs restes en vie. Renvoie les PID effectivement tues.
 
@@ -411,7 +468,12 @@ class Moteur:
         if port_disponible(self.hote, self.port):
             return
 
-        tues = tuer_orphelins()
+        # Seul le processus qui tient CE port nous interesse. Tuer tous les
+        # moteurs issus de notre dossier emportait aussi celui d'une
+        # application en cours d'utilisation, sur un autre port.
+        occupant = proprietaire_du_port(self.port)
+        a_nous = orphelins_du_moteur()
+        tues = tuer_orphelins([occupant]) if occupant in a_nous else []
 
         for essai in range(tentatives):
             if port_disponible(self.hote, self.port):

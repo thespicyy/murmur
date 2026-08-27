@@ -797,6 +797,44 @@ validée bien avant son jalon.
 
 ## Journal
 
+**27/08/2026 (33) — Le reste des relances : la suite de tests tuait le moteur**
+Après le correctif de la course entre fils, les relances continuaient. Le
+compteur passait de 237 à 239 **à chaque exécution de la suite de tests**, et
+le moteur changeait de PID.
+
+Libérer le port revenait à tuer **tous** les moteurs issus de notre dossier —
+et deux tests faisaient le même ménage sans filtre. Or le dossier livré est une
+jonction NTFS vers celui du projet, et Windows **résout la jonction** quand on
+lui demande le chemin d'un processus :
+
+```
+lancé depuis  : ...\dist\Murmur\engine\whisper-server.exe
+lu comme      : ...\Murmur\engine\whisper-server.exe
+```
+
+Deux chemins au lancement, un seul à la lecture. L'application et la suite de
+tests se reconnaissaient donc mutuellement comme orphelines, et chaque
+exécution des tests tuait le moteur de l'application en cours d'utilisation.
+Cela n'atteint pas un utilisateur — la jonction n'existe que sur une machine de
+développement — mais cela a pollué le diagnostic pendant des jours.
+
+Le critère devient le bon : on ne tue que le processus qui **tient ce port-là**,
+lu dans la table TCP du système (`GetExtendedTcpTable`), et seulement s'il est
+des nôtres. Les deux ménages de test ne visent plus que ce qu'ils ont créé.
+
+Mesuré avant / après, application en marche pendant l'exécution :
+
+| | relances | PID du moteur |
+|---|---|---|
+| avant | 237 → 239 | changé |
+| après, trois exécutions | 239 → 239 | inchangé |
+
+Une leçon de méthode aussi : la première mesure du correctif donnait « zéro
+relance » — mais l'application avait déjà atteint son plafond de trois
+redémarrages et abandonné. Elle ne pouvait plus rien relancer. Un compteur
+figé ne prouve pas qu'il ne se passe rien. **782 tests.**
+
+
 **27/08/2026 (32) — Publication : dépôt public, licence MIT, version 0.1.0**
 Le dépôt est ouvert sous licence MIT, l'archive de 56 Mo attachée à la
 release. Deux choses ont demandé du soin.
