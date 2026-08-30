@@ -419,6 +419,14 @@ def main() -> int:
         verrou.liberer()
         return 1
 
+    # L'entree de demarrage designe un chemin, et un chemin change. On la
+    # remet sur l'executable courant plutot que de laisser Windows lancer une
+    # copie qui n'est plus la bonne.
+    corrigee = systeme.rafraichir_demarrage_auto()
+    if corrigee:
+        journal.obtenir("main").info("demarrage automatique remis a jour : %s",
+                                     corrigee)
+
     murmur = Murmur(conf, verbeux=verbeux, verrou=verrou, racine=racine)
     try:
         murmur.demarrer()

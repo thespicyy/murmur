@@ -309,3 +309,57 @@ def test_activer_puis_desactiver_le_demarrage_auto():
     finally:
         systeme.definir_demarrage_auto(etat_initial)
     assert systeme.demarrage_auto_actif() == etat_initial
+
+
+# --------------------------------------------------------------------------
+# L'entree de demarrage vieillit mal
+# --------------------------------------------------------------------------
+
+@pytest.mark.materiel
+def test_une_entree_de_demarrage_perimee_est_corrigee(monkeypatch):
+    """Elle designe un chemin, et le chemin change.
+
+    Deplacer l'application, passer des sources a la version empaquetee,
+    reinstaller ailleurs : Windows continue de lancer ce qui n'existe plus,
+    ou une ancienne copie. C'est arrive — la cle designait l'environnement de
+    developpement alors que l'application installee etait l'executable, et
+    rien ne le signalait puisque les deux se lancent.
+    """
+    inscrites = []
+    monkeypatch.setattr(systeme, "commande_inscrite",
+                        lambda: '"C:/ancien/chemin/Murmur.exe"')
+    monkeypatch.setattr(systeme, "commande_de_lancement",
+                        lambda: '"C:/nouveau/chemin/Murmur.exe"')
+    monkeypatch.setattr(systeme, "activer_demarrage_auto",
+                        lambda: inscrites.append(True))
+
+    corrigee = systeme.rafraichir_demarrage_auto()
+
+    assert corrigee == '"C:/nouveau/chemin/Murmur.exe"'
+    assert inscrites == [True]
+
+
+@pytest.mark.materiel
+def test_une_entree_juste_n_est_pas_reecrite(monkeypatch):
+    """Reecrire a chaque demarrage salirait le journal pour rien."""
+    inscrites = []
+    monkeypatch.setattr(systeme, "commande_inscrite", lambda: '"pareil"')
+    monkeypatch.setattr(systeme, "commande_de_lancement", lambda: '"pareil"')
+    monkeypatch.setattr(systeme, "activer_demarrage_auto",
+                        lambda: inscrites.append(True))
+
+    assert systeme.rafraichir_demarrage_auto() is None
+    assert inscrites == []
+
+
+@pytest.mark.materiel
+def test_sans_demarrage_auto_on_ne_s_inscrit_pas(monkeypatch):
+    """Ce n'est pas a l'application de decider qu'elle doit se lancer avec
+    Windows : sans demande, on ne touche a rien."""
+    inscrites = []
+    monkeypatch.setattr(systeme, "commande_inscrite", lambda: None)
+    monkeypatch.setattr(systeme, "activer_demarrage_auto",
+                        lambda: inscrites.append(True))
+
+    assert systeme.rafraichir_demarrage_auto() is None
+    assert inscrites == []

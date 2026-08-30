@@ -797,6 +797,33 @@ validée bien avant son jalon.
 
 ## Journal
 
+**30/08/2026 (35) — L'entrée de démarrage désignait les sources**
+Demande simple — lancer Murmur avec Windows — et le réglage existait déjà :
+une valeur dans la clé `Run` de l'utilisateur courant, exposée dans les
+réglages, sans droits administrateur.
+
+Sauf qu'elle était **déjà là, et fausse** :
+
+```
+inscrit  : ...\.venv\Scripts\pythonw.exe" -m murmur
+installé : ...\dist\Murmur\Murmur.exe
+```
+
+Activée pendant le développement, elle désignait l'environnement Python. Au
+prochain démarrage de Windows, c'est la version source qui serait partie —
+dépendante du `.venv`, et pas celle qu'on croit lancer. Rien ne le signalait :
+les deux se lancent.
+
+C'est le défaut structurel d'une entrée de démarrage : elle désigne un chemin,
+et un chemin change. Déplacer le dossier, passer des sources à l'exécutable,
+réinstaller ailleurs — Windows continue de lancer ce qui n'est plus là.
+
+L'application remet donc l'entrée sur l'exécutable courant à chaque démarrage,
+et l'écrit dans le journal. Elle ne s'inscrit jamais d'elle-même : sans
+demande explicite, elle ne touche à rien. Vérifié — l'entrée s'est corrigée
+seule au premier lancement suivant. **784 tests.**
+
+
 **27/08/2026 (34) — Un dépôt public se lit d'abord par sa racine**
 Dix-sept fichiers à la racine, dont 2 600 lignes de documents de travail, quatre
 outils de captures d'écran, deux lanceurs `.bat` et une maquette morte. Ça se

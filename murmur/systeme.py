@@ -155,6 +155,45 @@ def desactiver_demarrage_auto() -> None:
         pass  # deja absent : le resultat voulu est atteint
 
 
+def commande_inscrite() -> str | None:
+    """Ce que la cle Run contient aujourd'hui, ou rien."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, CLE_DEMARRAGE) as cle:
+            valeur, _ = winreg.QueryValueEx(cle, NOM_DEMARRAGE)
+            return valeur
+    except OSError:
+        return None
+
+
+def rafraichir_demarrage_auto() -> str | None:
+    """Remet l'entree de demarrage sur l'executable courant si elle a bouge.
+
+    Une entree de demarrage vieillit mal : elle designe un chemin, et le
+    chemin change. Deplacer le dossier de l'application, passer des sources a
+    la version empaquetee, reinstaller ailleurs — a chaque fois Windows
+    continue de lancer ce qui n'existe plus, ou pire, une ancienne copie.
+
+    C'est arrive ici : la cle designait `pythonw.exe -m murmur` dans
+    l'environnement de developpement, alors que l'application installee etait
+    l'executable. Rien ne le signalait — les deux se lancent.
+
+    On ne touche a rien tant que le demarrage automatique n'est pas demande :
+    ce n'est pas a l'application de decider qu'elle doit s'inscrire.
+
+    Renvoie la nouvelle commande si elle a ete corrigee, sinon `None`.
+    """
+    actuelle = commande_inscrite()
+    if not actuelle:
+        return None
+
+    attendue = commande_de_lancement()
+    if actuelle == attendue:
+        return None
+
+    activer_demarrage_auto()
+    return attendue
+
+
 def definir_demarrage_auto(actif: bool) -> None:
     if actif:
         activer_demarrage_auto()
