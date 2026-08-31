@@ -350,9 +350,12 @@ def micros(mot: module_langue.Traducteur) -> list[dict]:
     """
     from .. import audio
 
+    # La valeur retenue est le NOM et non l'index : un index PortAudio se
+    # renumerote des qu'un peripherique apparait ou disparait, et le micro
+    # choisi deviendrait silencieusement un autre.
     choix = [{"valeur": MICRO_DEFAUT, "libelle": mot("reg.micro.defaut")}]
     try:
-        choix += [{"valeur": entree["index"], "libelle": entree["nom"]}
+        choix += [{"valeur": entree["nom"], "libelle": entree["nom"]}
                   for entree in audio.peripheriques_entree()]
     except Exception:                      # aucune interface audio disponible
         pass

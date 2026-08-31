@@ -6,6 +6,7 @@ synthetiques dont on connait exactement les proprietes. Les tests marques
 """
 
 import io
+import sys
 import wave
 
 import numpy as np
@@ -399,3 +400,128 @@ def test_un_taux_illisible_retombe_sur_seize_kilohertz():
 
     faux = Cassee([{"name": "Windows WASAPI", "default_input_device": 24}], {})
     assert audio.choisir_entree(faux) == (24, audio.TAUX)
+
+
+# --------------------------------------------------------------------------
+# Un micro par micro, et non un par interface audio
+# --------------------------------------------------------------------------
+
+class _SounddeviceDouble:
+    """PortAudio tel qu'il se presente vraiment : le meme materiel repete."""
+
+    def __init__(self, appareils, interfaces):
+        self._appareils = appareils
+        self._interfaces = interfaces
+
+    def query_hostapis(self):
+        return [{"name": nom, "default_input_device": defaut}
+                for nom, defaut in self._interfaces]
+
+    def query_devices(self, index=None):
+        if index is None:
+            return self._appareils
+        return self._appareils[index]
+
+
+# Releve reel sur un poste ordinaire : deux micros, quatorze entrees.
+RELEVE = _SounddeviceDouble(
+    appareils=[
+        {"name": "Mappeur de sons Microsoft - Input", "max_input_channels": 2,
+         "hostapi": 0, "default_samplerate": 44100},
+        {"name": "Microphone (UGREEN Camera Audio", "max_input_channels": 2,
+         "hostapi": 0, "default_samplerate": 44100},
+        {"name": "Pilote de capture audio principal", "max_input_channels": 2,
+         "hostapi": 1, "default_samplerate": 44100},
+        {"name": "Microphone (UGREEN Camera Audio)", "max_input_channels": 2,
+         "hostapi": 1, "default_samplerate": 44100},
+        {"name": "Microphone (UGREEN Camera Audio)", "max_input_channels": 2,
+         "hostapi": 2, "default_samplerate": 48000},
+        {"name": "Microphone (Casque sans fil)", "max_input_channels": 1,
+         "hostapi": 2, "default_samplerate": 48000},
+        {"name": "Microphone ()", "max_input_channels": 1,
+         "hostapi": 3, "default_samplerate": 44100},
+    ],
+    interfaces=[("MME", 1), ("Windows DirectSound", 3),
+                ("Windows WASAPI", 4), ("Windows WDM-KS", 6)])
+
+
+@pytest.mark.materiel
+def test_un_seul_choix_par_micro(monkeypatch):
+    """Deux micros ne doivent pas produire quatorze lignes.
+
+    PortAudio expose le meme materiel une fois par interface — MME,
+    DirectSound, WASAPI, WDM-KS — plus des pseudo-appareils (« mappeur de
+    sons ») et des fantomes (« Microphone () »). Le selecteur des reglages les
+    montrait tous.
+    """
+    monkeypatch.setattr(audio, "reenumerer", lambda _sd: None)
+    monkeypatch.setitem(sys.modules, "sounddevice", RELEVE)
+
+    entrees = audio.peripheriques_entree()
+
+    assert [e["nom"] for e in entrees] == [
+        "Microphone (UGREEN Camera Audio)", "Microphone (Casque sans fil)"]
+    assert all(e["interface"] == "Windows WASAPI" for e in entrees), \
+        "WASAPI donne les noms complets et le taux natif"
+
+
+@pytest.mark.materiel
+def test_ni_pseudo_appareil_ni_fantome(monkeypatch):
+    """« Mappeur de sons » double l'option « entree par defaut » ; les
+    entrees WDM-KS sans nom ne menent nulle part."""
+    monkeypatch.setattr(audio, "reenumerer", lambda _sd: None)
+    monkeypatch.setitem(sys.modules, "sounddevice", RELEVE)
+
+    noms = [e["nom"] for e in audio.peripheriques_entree()]
+
+    assert not any("Mappeur" in nom or "Pilote de capture" in nom
+                   for nom in noms)
+    assert "Microphone ()" not in noms
+
+
+@pytest.mark.materiel
+def test_le_micro_est_retrouve_par_son_nom(monkeypatch):
+    """Un index PortAudio se renumerote des qu'un peripherique apparait : le
+    micro choisi deviendrait silencieusement un autre."""
+    monkeypatch.setattr(audio, "reenumerer", lambda _sd: None)
+    monkeypatch.setitem(sys.modules, "sounddevice", RELEVE)
+
+    assert audio.trouver_entree(RELEVE,
+                                "Microphone (Casque sans fil)") == 5
+    assert audio.trouver_entree(RELEVE, "Micro debranche") is None
+
+
+@pytest.mark.materiel
+def test_un_reglage_tronque_par_mme_designe_encore_le_bon_micro(monkeypatch):
+    """MME coupe les noms a trente et un caracteres. Un reglage ecrit du temps
+    ou la liste montrait cette forme doit continuer de fonctionner."""
+    monkeypatch.setattr(audio, "reenumerer", lambda _sd: None)
+    monkeypatch.setitem(sys.modules, "sounddevice", RELEVE)
+
+    assert audio.trouver_entree(
+        RELEVE, "Microphone (UGREEN Camera Audio") == 4
+
+
+@pytest.mark.materiel
+def test_le_micro_choisi_capture_a_son_taux_natif(monkeypatch):
+    """WASAPI impose le taux de la carte en mode partage : demander 16 kHz a
+    un materiel qui tourne a 48 rend du silence."""
+    monkeypatch.setattr(audio, "reenumerer", lambda _sd: None)
+    monkeypatch.setitem(sys.modules, "sounddevice", RELEVE)
+
+    index, taux = audio.choisir_entree(RELEVE,
+                                       "Microphone (Casque sans fil)")
+
+    assert (index, taux) == (5, 48000)
+
+
+@pytest.mark.materiel
+def test_un_micro_disparu_ne_bloque_pas_la_dictee(monkeypatch):
+    """Casque debranche : mieux vaut l'entree par defaut qu'un refus."""
+    monkeypatch.setattr(audio, "reenumerer", lambda _sd: None)
+    monkeypatch.setitem(sys.modules, "sounddevice", RELEVE)
+
+    index, taux = audio.choisir_entree(RELEVE, "Micro vendu depuis")
+
+    assert index == 4, "on retombe sur l'entree par defaut de WASAPI"
+    assert taux == 48000

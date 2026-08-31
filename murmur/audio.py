@@ -172,13 +172,25 @@ def _passe_bas(x: np.ndarray, taux: int, coupure: float) -> np.ndarray:
 def choisir_entree(sounddevice, demande=None) -> tuple:
     """(peripherique, taux de capture) a utiliser.
 
-    Un peripherique explicitement choisi dans les reglages est respecte tel
-    quel : c'est une decision de l'utilisateur, pas une valeur par defaut a
+    Un peripherique explicitement choisi dans les reglages est respecte :
+    c'est une decision de l'utilisateur, pas une valeur par defaut a
     optimiser. Sinon on prend l'entree par defaut de la premiere interface
     disponible, et son taux natif.
+
+    La demande est un NOM. Un index PortAudio se renumerote des qu'un
+    peripherique apparait ou disparait : le micro choisi deviendrait
+    silencieusement un autre. Un index est neanmoins accepte, pour les
+    configurations ecrites avant ce changement.
     """
-    if demande is not None:
-        return demande, TAUX
+    if isinstance(demande, int):
+        return demande, taux_natif(sounddevice, demande)
+    if demande:
+        index = trouver_entree(sounddevice, demande)
+        if index is not None:
+            return index, taux_natif(sounddevice, index)
+        # Micro debranche, ou renomme par son pilote : on retombe sur l'entree
+        # par defaut plutot que de refuser de dicter.
+        _log.warning("micro « %s » introuvable : entree par defaut", demande)
 
     try:
         interfaces = {api["name"]: api for api in sounddevice.query_hostapis()}
@@ -193,14 +205,25 @@ def choisir_entree(sounddevice, demande=None) -> tuple:
         index = api.get("default_input_device", -1)
         if index is None or index < 0:
             continue
-        try:
-            taux = int(round(sounddevice.query_devices(index)
-                             ["default_samplerate"])) or TAUX
-        except Exception:
-            taux = TAUX
-        return index, taux
+        return index, taux_natif(sounddevice, index)
 
     return None, TAUX
+
+
+def taux_natif(sounddevice, index: int) -> int:
+    """Frequence a laquelle ce peripherique accepte de capturer.
+
+    Elle n'est pas negociable en mode partage : WASAPI impose celle de la
+    carte, et demander seize kilohertz a un materiel qui tourne a quarante-huit
+    rend du silence — c'est ce qui faisait croire a un micro muet. Le
+    reechantillonnage a lieu ensuite, chez nous.
+    """
+    try:
+        taux = int(round(sounddevice.query_devices(index)["default_samplerate"]))
+        return taux or TAUX
+    except Exception:
+        _log.debug("taux natif illisible pour %s", index, exc_info=True)
+        return TAUX
 
 
 # --------------------------------------------------------------------------
@@ -407,7 +430,26 @@ def reenumerer(sounddevice=None) -> bool:
 
 
 def peripheriques_entree(rafraichir: bool = True) -> list[dict]:
-    """Liste les micros disponibles — pour la configuration et le diagnostic.
+    """Les micros disponibles — un par micro, et non un par interface audio.
+
+    PortAudio expose le meme materiel une fois par interface : MME,
+    DirectSound, WASAPI, WDM-KS. Sur un poste ordinaire, deux micros
+    produisent ainsi quatorze entrees, dont plusieurs inutilisables.
+
+    Releve reel :
+
+        MME           Microphone (UGREEN Camera Audio        <- tronque a 31
+        DirectSound   Microphone (UGREEN Camera Audio)
+        WASAPI        Microphone (UGREEN Camera Audio)
+        WDM-KS        Microphone (UGREEN Camera Audio)
+        ...           Microphone ()                          <- fantome
+        MME           Mappeur de sons Microsoft - Input      <- pseudo-appareil
+
+    On ne garde donc qu'une interface, la premiere de `INTERFACES` qui
+    presente une entree. WASAPI vient en tete : elle donne les noms complets
+    (MME les coupe a trente et un caracteres), le taux natif du materiel, et
+    elle ne montre ni les fantomes de WDM-KS ni les pseudo-appareils
+    « mappeur de sons », que l'option « entree par defaut » couvre deja.
 
     La liste est refaite avant d'etre lue : sans cela, elle montrerait celle
     du chargement de PortAudio, d'ou l'absence d'un casque pourtant branche.
@@ -417,11 +459,42 @@ def peripheriques_entree(rafraichir: bool = True) -> list[dict]:
     if rafraichir:
         reenumerer(sounddevice)
     try:
-        return [
-            {"index": index, "nom": info["name"],
-             "canaux": info["max_input_channels"]}
-            for index, info in enumerate(sounddevice.query_devices())
-            if info["max_input_channels"] > 0
-        ]
+        interfaces = [api["name"] for api in sounddevice.query_hostapis()]
+        appareils = list(enumerate(sounddevice.query_devices()))
     except Exception as exc:
         raise ErreurAudio(f"impossible de lister les peripheriques : {exc}") from exc
+
+    for voulue in INTERFACES:
+        if voulue not in interfaces:
+            continue
+        rang = interfaces.index(voulue)
+        entrees = [
+            {"index": index, "nom": info["name"],
+             "canaux": info["max_input_channels"], "interface": voulue}
+            for index, info in appareils
+            if info["max_input_channels"] > 0 and info["hostapi"] == rang
+        ]
+        if entrees:
+            return entrees
+    return []
+
+
+def trouver_entree(sounddevice, nom: str) -> int | None:
+    """Index du micro portant ce nom, sur la meilleure interface disponible.
+
+    Le reglage retient un NOM et non un index : un index PortAudio se
+    renumerote des qu'un peripherique apparait ou disparait, et le micro
+    choisi deviendrait silencieusement un autre.
+
+    La comparaison tolere la troncature de MME — un reglage ecrit du temps ou
+    la liste montrait « Microphone (UGREEN Camera Audio », sans parenthese
+    fermante, doit continuer de designer le bon micro.
+    """
+    if not nom:
+        return None
+    cible = nom.strip().casefold()
+    for entree in peripheriques_entree(rafraichir=False):
+        candidat = entree["nom"].strip().casefold()
+        if candidat == cible or candidat.startswith(cible)                 or cible.startswith(candidat):
+            return entree["index"]
+    return None

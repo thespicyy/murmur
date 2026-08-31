@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Construit Murmur.exe.
 
-    .venv\\Scripts\\python.exe outils\construire.py
+    .venv\\Scripts\\python.exe outils\\construire.py
 
 Produit `dist/Murmur/`, un dossier contenant l'executable et ses dependances.
 
@@ -115,7 +115,7 @@ def verifier_interpreteur() -> None:
     manquant     : {", ".join(manquants)}
 
     Construis avec celui du projet :
-        .venv{os.sep}Scripts{os.sep}python.exe outils\construire.py""")
+        .venv{os.sep}Scripts{os.sep}python.exe outils\\construire.py""")
 
 
 def verifier_arret() -> None:
@@ -330,7 +330,7 @@ def main(copier: bool = False, raccourci: bool = True) -> int:
     if not copier:
         print()
         print("  Pour un dossier autonome, deplacable sur une autre machine :")
-        print("      .venv\\Scripts\\python.exe outils\construire.py --copier")
+        print("      .venv\\Scripts\\python.exe outils\\construire.py --copier")
     return 0
 
 

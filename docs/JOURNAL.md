@@ -797,6 +797,47 @@ validée bien avant son jalon.
 
 ## Journal
 
+**30/08/2026 (36) — Quatorze entrées pour deux micros**
+Le sélecteur des réglages listait le même matériel plusieurs fois. PortAudio
+expose chaque périphérique **une fois par interface audio** — MME,
+DirectSound, WASAPI, WDM-KS — et rien ne le regroupait. Relevé réel :
+
+```
+MME           Microphone (UGREEN Camera Audio      ← tronqué à 31 caractères
+DirectSound   Microphone (UGREEN Camera Audio)
+WASAPI        Microphone (UGREEN Camera Audio)
+WDM-KS        Microphone (UGREEN Camera Audio)
+...           Microphone ()                        ← fantôme WDM-KS
+MME           Mappeur de sons Microsoft - Input    ← pseudo-appareil
+```
+
+Deux micros, quatorze lignes, dont plusieurs inutilisables et deux
+pseudo-appareils qui font double emploi avec « entrée par défaut ».
+
+On ne garde qu'une interface : la première d'`INTERFACES` qui présente une
+entrée, donc WASAPI. Elle donne les noms complets, le taux natif du matériel,
+et ne montre ni les fantômes ni les mappeurs. **14 → 2.**
+
+**Deux défauts trouvés en corrigeant celui-là.**
+
+Le réglage retenait un **index** PortAudio. Or un index se renumérote dès
+qu'un périphérique apparaît ou disparaît : brancher un casque et le micro
+choisi devient silencieusement un autre. Il retient désormais le nom, et la
+comparaison tolère la troncature de MME — un réglage écrit du temps où la
+liste montrait « Microphone (UGREEN Camera Audio » désigne encore le bon
+micro. Un index reste accepté, pour les configurations existantes.
+
+Et un micro choisi explicitement était capturé à 16 kHz alors que
+`choisir_entree` allait chercher le taux natif dans le seul cas du défaut.
+WASAPI impose celui de la carte en mode partagé : demander 16 kHz à un
+matériel qui tourne à 48 rend du silence — c'est le défaut qui avait déjà
+fait croire à un micro muet en août. Le taux natif est maintenant résolu dans
+tous les cas.
+
+Enfin, un micro débranché ne bloque plus la dictée : on retombe sur l'entrée
+par défaut en le disant au journal. **790 tests.**
+
+
 **30/08/2026 (35) — L'entrée de démarrage désignait les sources**
 Demande simple — lancer Murmur avec Windows — et le réglage existait déjà :
 une valeur dans la clé `Run` de l'utilisateur courant, exposée dans les
