@@ -826,8 +826,8 @@ Si les deux aboutissent, l'instance unique empêche le second lancement.
 La désactivation retire les deux : en laisser une reviendrait à ne rien
 désactiver. **792 tests.**
 
-Reste à vérifier au prochain redémarrage : c'est la seule mesure qui compte,
-et elle demande un redémarrage.
+Vérifié au redémarrage suivant : Murmur se lance. Quel que soit celui des
+deux chemins qui a fonctionné, en dépendre d'un seul ne suffisait pas.
 
 
 **30/08/2026 (36) — Quatorze entrées pour deux micros**

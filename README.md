@@ -102,7 +102,7 @@ backend Vulkan. La procédure est décrite dans
 
 ```
 .venv\Scripts\python -m murmur --console      # lancer depuis les sources
-.venv\Scripts\python -m pytest                # 782 tests
+.venv\Scripts\python -m pytest                # 791 tests
 .venv\Scripts\python outils\construire.py     # produit dist/Murmur/
 .venv\Scripts\python outils\empaqueter.py     # produit l'archive
 ```
@@ -112,7 +112,7 @@ backend Vulkan. La procédure est décrite dans
 | | |
 |---|---|
 | `murmur/` | l'application |
-| `tests/` | 782 tests |
+| `tests/` | 791 tests |
 | `outils/` | construction, archive, captures d'écran, essai sur machine vierge |
 | `docs/` | spécification, plan, journal de bord, journal des erreurs |
 
