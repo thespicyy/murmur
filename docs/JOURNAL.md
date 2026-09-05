@@ -797,6 +797,39 @@ validée bien avant son jalon.
 
 ## Journal
 
+**05/09/2026 (37) — La clé `Run` a échoué en silence**
+Après redémarrage, Murmur ne s'est pas lancé. Rien dans son journal : le
+processus n'a pas été créé du tout — ce n'est pas un plantage, c'est un
+non-lancement.
+
+Tout était pourtant en règle, et vérifié un par un :
+
+| | |
+|---|---|
+| valeur dans `Run` | présente, `REG_SZ`, chemin cité |
+| indicateur de désactivation | absent — donc active |
+| exécutable | présent, et démarre à la main |
+| stratégie bloquant `Run` | aucune |
+| délai de démarrage configuré | aucun |
+
+Le fait décisif est ailleurs : **Windows n'a lancé que deux des cinq entrées
+activées** de cette clé. Discord et Wallpaper Engine sont partis ; LGHUB,
+AMD Noise Suppression et Murmur, non. Le problème n'est donc pas propre à
+Murmur, et rien dans le journal des événements n'en garde trace.
+
+Je ne sais pas pourquoi Windows en saute. Ce que je peux faire, c'est ne plus
+dépendre d'un seul chemin : l'activation dépose aussi un **raccourci dans le
+dossier de démarrage**. Il emprunte une autre voie, se voit dans
+l'explorateur et se supprime à la main — trois choses que la clé n'offre pas.
+Si les deux aboutissent, l'instance unique empêche le second lancement.
+
+La désactivation retire les deux : en laisser une reviendrait à ne rien
+désactiver. **792 tests.**
+
+Reste à vérifier au prochain redémarrage : c'est la seule mesure qui compte,
+et elle demande un redémarrage.
+
+
 **30/08/2026 (36) — Quatorze entrées pour deux micros**
 Le sélecteur des réglages listait le même matériel plusieurs fois. PortAudio
 expose chaque périphérique **une fois par interface audio** — MME,

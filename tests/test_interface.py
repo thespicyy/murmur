@@ -1,6 +1,7 @@
 """T3.1, T3.2, T3.4, T3.6 — theme, indicateur, icone, integration systeme."""
 
 import socket
+from pathlib import Path
 
 import pytest
 
@@ -328,6 +329,8 @@ def test_une_entree_de_demarrage_perimee_est_corrigee(monkeypatch):
     inscrites = []
     monkeypatch.setattr(systeme, "commande_inscrite",
                         lambda: '"C:/ancien/chemin/Murmur.exe"')
+    monkeypatch.setattr(systeme, "chemin_raccourci_demarrage",
+                        lambda: Path("raccourci-absent.lnk"))
     monkeypatch.setattr(systeme, "commande_de_lancement",
                         lambda: '"C:/nouveau/chemin/Murmur.exe"')
     monkeypatch.setattr(systeme, "activer_demarrage_auto",
@@ -340,11 +343,14 @@ def test_une_entree_de_demarrage_perimee_est_corrigee(monkeypatch):
 
 
 @pytest.mark.materiel
-def test_une_entree_juste_n_est_pas_reecrite(monkeypatch):
+def test_une_entree_juste_n_est_pas_reecrite(monkeypatch, tmp_path):
     """Reecrire a chaque demarrage salirait le journal pour rien."""
     inscrites = []
+    lien = tmp_path / "Murmur.lnk"
+    lien.write_bytes(b"raccourci")
     monkeypatch.setattr(systeme, "commande_inscrite", lambda: '"pareil"')
     monkeypatch.setattr(systeme, "commande_de_lancement", lambda: '"pareil"')
+    monkeypatch.setattr(systeme, "chemin_raccourci_demarrage", lambda: lien)
     monkeypatch.setattr(systeme, "activer_demarrage_auto",
                         lambda: inscrites.append(True))
 
@@ -353,11 +359,30 @@ def test_une_entree_juste_n_est_pas_reecrite(monkeypatch):
 
 
 @pytest.mark.materiel
+def test_un_raccourci_de_demarrage_manquant_est_repose(monkeypatch, tmp_path):
+    """Les deux inscriptions valent mieux qu'une : sur un poste, cinq entrees
+    `Run` activees, deux lancees, sans trace nulle part."""
+    inscrites = []
+    monkeypatch.setattr(systeme, "commande_inscrite", lambda: '"pareil"')
+    monkeypatch.setattr(systeme, "commande_de_lancement", lambda: '"pareil"')
+    monkeypatch.setattr(systeme, "chemin_raccourci_demarrage",
+                        lambda: tmp_path / "absent.lnk")
+    monkeypatch.setattr(systeme, "activer_demarrage_auto",
+                        lambda: inscrites.append(True))
+
+    systeme.rafraichir_demarrage_auto()
+
+    assert inscrites == [True], "le raccourci manquant n'a pas ete repose"
+
+
+@pytest.mark.materiel
 def test_sans_demarrage_auto_on_ne_s_inscrit_pas(monkeypatch):
     """Ce n'est pas a l'application de decider qu'elle doit se lancer avec
     Windows : sans demande, on ne touche a rien."""
     inscrites = []
     monkeypatch.setattr(systeme, "commande_inscrite", lambda: None)
+    monkeypatch.setattr(systeme, "chemin_raccourci_demarrage",
+                        lambda: Path("raccourci-absent.lnk"))
     monkeypatch.setattr(systeme, "activer_demarrage_auto",
                         lambda: inscrites.append(True))
 

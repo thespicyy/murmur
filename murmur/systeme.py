@@ -20,7 +20,9 @@ import sys
 import winreg
 from pathlib import Path
 
-from . import config as configuration
+from . import config as configuration, journal
+
+_log = journal.obtenir("systeme")
 
 #: Port du verrou. Distinct de celui du moteur : ce sont deux ressources sans
 #: rapport, les confondre rendrait un conflit incomprehensible.
@@ -129,6 +131,9 @@ def commande_de_lancement() -> str:
 
 
 def demarrage_auto_actif() -> bool:
+    """Vrai si l'une des deux inscriptions est en place."""
+    if chemin_raccourci_demarrage().exists():
+        return True
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, CLE_DEMARRAGE) as cle:
             valeur, _ = winreg.QueryValueEx(cle, NOM_DEMARRAGE)
@@ -138,21 +143,79 @@ def demarrage_auto_actif() -> bool:
 
 
 def activer_demarrage_auto() -> str:
-    """Inscrit Murmur au demarrage. Renvoie la commande enregistree."""
+    """Inscrit Murmur au demarrage, par les deux voies. Rend la commande.
+
+    Deux voies plutot qu'une, parce que la premiere a echoue en silence : sur
+    un poste, cinq entrees `Run` activees, deux lancees, sans trace nulle
+    part. Un raccourci dans le dossier de demarrage emprunte un chemin
+    different, se voit dans l'explorateur et se supprime a la main.
+
+    Si les deux aboutissent, l'instance unique empeche le second lancement.
+    """
     commande = commande_de_lancement()
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, CLE_DEMARRAGE, 0,
                         winreg.KEY_SET_VALUE) as cle:
         winreg.SetValueEx(cle, NOM_DEMARRAGE, 0, winreg.REG_SZ, commande)
+
+    try:
+        poser_raccourci_demarrage()
+    except OSError:
+        # La cle suffit a rendre le service attendu : on ne fait pas echouer
+        # l'activation entiere pour la ceinture quand les bretelles tiennent.
+        _log.warning("raccourci de demarrage impossible", exc_info=True)
     return commande
 
 
+def poser_raccourci_demarrage() -> Path | None:
+    """Depose le raccourci dans le dossier de demarrage de l'utilisateur.
+
+    Rien a faire quand Murmur tourne depuis les sources : un raccourci vers
+    `pythonw.exe` avec ses arguments n'a pas de sens ici, et la cle `Run` s'en
+    charge.
+    """
+    if not getattr(sys, "frozen", False):
+        return None
+    return creer_raccourci(Path(sys.executable),
+                           lien=chemin_raccourci_demarrage())
+
+
 def desactiver_demarrage_auto() -> None:
+    """Retire les DEUX inscriptions : en laisser une reviendrait a ne rien
+    desactiver du tout."""
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, CLE_DEMARRAGE, 0,
                             winreg.KEY_SET_VALUE) as cle:
             winreg.DeleteValue(cle, NOM_DEMARRAGE)
     except FileNotFoundError:
         pass  # deja absent : le resultat voulu est atteint
+
+    lien = chemin_raccourci_demarrage()
+    if lien.exists():
+        lien.unlink()
+
+
+def dossier_demarrage() -> Path:
+    """Le dossier « Demarrage » de l'utilisateur courant.
+
+    POURQUOI PAS SEULEMENT LA CLE `Run`
+
+    La cle marche — jusqu'a ce qu'elle ne marche plus, sans rien dire. Releve
+    sur un poste : cinq entrees activees, deux lancees. Murmur, valide et non
+    desactive, n'a pas ete execute, et aucun journal, aucun evenement systeme
+    n'en garde trace.
+
+    Un raccourci dans le dossier de demarrage a trois avantages sur elle : il
+    se voit dans l'explorateur, se supprime a la main, et emprunte un chemin
+    different de celui qui vient d'echouer. Les deux mecanismes coexistent —
+    l'instance unique empeche que Murmur se lance deux fois.
+    """
+    appdata = os.getenv("APPDATA")
+    base = (Path(appdata) if appdata else Path.home() / "AppData" / "Roaming")
+    return base / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+
+
+def chemin_raccourci_demarrage() -> Path:
+    return dossier_demarrage() / f"{NOM_DEMARRAGE}.lnk"
 
 
 def commande_inscrite() -> str | None:
@@ -183,11 +246,12 @@ def rafraichir_demarrage_auto() -> str | None:
     Renvoie la nouvelle commande si elle a ete corrigee, sinon `None`.
     """
     actuelle = commande_inscrite()
-    if not actuelle:
+    lien = chemin_raccourci_demarrage()
+    if not actuelle and not lien.exists():
         return None
 
     attendue = commande_de_lancement()
-    if actuelle == attendue:
+    if actuelle == attendue and lien.exists():
         return None
 
     activer_demarrage_auto()
@@ -232,7 +296,7 @@ def chemin_raccourci() -> Path:
 
 
 def creer_raccourci(cible: Path, description: str = "Dictee vocale locale",
-                    icone: Path | None = None) -> Path:
+                    icone: Path | None = None, lien: Path | None = None) -> Path:
     """Cree le raccourci du menu Demarrer et renvoie son chemin.
 
     Un fichier `.lnk` est un format binaire COM : on passe par le
@@ -248,7 +312,7 @@ def creer_raccourci(cible: Path, description: str = "Dictee vocale locale",
     if not cible.exists():
         raise FileNotFoundError(f"cible introuvable : {cible}")
 
-    lien = chemin_raccourci()
+    lien = lien or chemin_raccourci()
     lien.parent.mkdir(parents=True, exist_ok=True)
 
     # L'executable porte deja son icone : s'y referer evite un fichier .ico
